@@ -1,3 +1,4 @@
+import smtplib
 from datetime import date
 import werkzeug
 from flask import Flask, abort, render_template, redirect, url_for, flash, request
@@ -16,6 +17,8 @@ from sqlalchemy.orm import relationship
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
 from dotenv import load_dotenv
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
@@ -327,12 +330,51 @@ def about():
     return render_template("about.html", logged_in=current_user.is_authenticated)
 
 
-@app.route("/contact")
+
+MAIL_ADDRESS = os.environ.get("EMAIL_KEY")
+MAIL_APP_PW = os.environ.get("PASSWORD_KEY")
+
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html", logged_in=current_user.is_authenticated)
+    if request.method == "POST":
+        data = request.form
+        # Send email to Joe with the email address provided in the form as the sender
+        send_email(data["name"], data["email"], data["phone"], data["message"])
+        return render_template("contact.html", msg_sent=True)
+    return render_template("contact.html", msg_sent=False, logged_in=current_user.is_authenticated)
+
+
+# def send_email(name, email, phone, message):
+#     email_message = f"Subject:New Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage:{message}"
+#     with smtplib.SMTP("smtp.office365.com") as connection:
+#         connection.starttls()
+#         connection.login(MAIL_ADDRESS, MAIL_APP_PW)
+#         connection.sendmail(MAIL_ADDRESS, MAIL_APP_PW, email_message)
+
+def send_email(name, sender_email, phone, message):
+    # Create the email message
+    email_message = MIMEMultipart()
+    email_message['From'] = sender_email  # The email address from the form
+    email_message['To'] = MAIL_ADDRESS  # Joe's email address
+    email_message['Subject'] = 'New Message from Contact Form'
+
+    # Create the body of the email
+    body = f"Name: {name}\nEmail: {sender_email}\nPhone: {phone}\nMessage: {message}"
+    email_message.attach(MIMEText(body, 'plain'))
+
+    try:
+        # Set up the SMTP server connection
+        with smtplib.SMTP("smtp.office365.com", 587) as connection:
+            connection.starttls()  # Upgrade the connection to a secure encrypted SSL/TLS connection
+            connection.sendmail(sender_email, MAIL_ADDRESS, email_message.as_string())  # Send the email
+        print("Email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send email. Error: {e}")
+
+
 
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=True)
 
 
