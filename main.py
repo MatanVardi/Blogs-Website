@@ -354,8 +354,8 @@ def contact():
 def send_email(name, sender_email, phone, message):
     # Create the email message
     email_message = MIMEMultipart()
-    email_message['From'] = sender_email  # The email address from the form
-    email_message['To'] = MAIL_ADDRESS  # Joe's email address
+    email_message['From'] = MAIL_ADDRESS  # Your email address
+    email_message['To'] = MAIL_ADDRESS  # Recipient's email address
     email_message['Subject'] = 'New Message from Contact Form'
 
     # Create the body of the email
@@ -366,10 +366,12 @@ def send_email(name, sender_email, phone, message):
         # Set up the SMTP server connection
         with smtplib.SMTP("smtp.office365.com", 587) as connection:
             connection.starttls()  # Upgrade the connection to a secure encrypted SSL/TLS connection
-            connection.sendmail(sender_email, MAIL_ADDRESS, email_message.as_string())  # Send the email
+            connection.login(MAIL_ADDRESS, MAIL_APP_PW)  # Authenticate with your credentials
+            connection.sendmail(MAIL_ADDRESS, MAIL_ADDRESS, email_message.as_string())  # Send the email
         print("Email sent successfully!")
     except Exception as e:
         print(f"Failed to send email. Error: {e}")
+
 
 
 
