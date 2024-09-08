@@ -10,17 +10,19 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Text
 from functools import wraps
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 # from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 # Import your forms from the forms.py
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 import os
-import dotenv
+import time
+from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-dotenv.load_dotenv()
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -333,16 +335,39 @@ def about():
 
 MAIL_ADDRESS = os.environ.get("EMAIL_KEY")
 MAIL_APP_PW = os.environ.get("PASSWORD_KEY")
+email_data = {
+    "count": 0,
+    "last_reset": datetime.utcnow()
+}
+
+# Time interval for reset
+reset_interval = timedelta(hours=2)
 
 @app.route("/contact", methods=["GET", "POST"])
 def contact():
+    global email_data
+    current_sended_emails = email_data['count']
+    last_reset = email_data['last_reset']
+
+    if datetime.utcnow() - last_reset > reset_interval:
+        # Reset count if the interval has passed
+        current_sended_emails = 0
+        last_reset = datetime.utcnow()
+        email_data['count'] = current_sended_emails
+        email_data['last_reset'] = last_reset
+
     if request.method == "POST":
         data = request.form
-        # Send email to Joe with the email address provided in the form as the sender
-        send_email(data["name"], data["email"], data["phone"], data["message"])
-        return render_template("contact.html", msg_sent=True)
-    return render_template("contact.html", msg_sent=False, logged_in=current_user.is_authenticated)
+        if current_sended_emails >= 2:
+            return render_template("contact.html", failed_to_send=True, logged_in=current_user.is_authenticated)
 
+        send_email(data["name"], data["email"], data["phone"], data["message"])
+        current_sended_emails += 1
+        email_data['count'] = current_sended_emails
+
+        return render_template("contact.html", msg_sent=True)
+
+    return render_template("contact.html", msg_sent=False, logged_in=current_user.is_authenticated)
 
 # def send_email(name, email, phone, message):
 #     email_message = f"Subject:New Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage:{message}"
