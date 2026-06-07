@@ -30,7 +30,6 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
-# TODO: Configure Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -98,7 +97,6 @@ class Comment(db.Model):
 
 
 
-# TODO: Create a User table for all your registered users.
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -213,7 +211,6 @@ def get_all_posts():
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
     comment_form = CommentForm()
-
     if request.method == "POST":
         if current_user.is_authenticated:
             comment_data = comment_form.data.get("comment_text")
